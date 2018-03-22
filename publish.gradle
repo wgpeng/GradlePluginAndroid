@@ -1,0 +1,92 @@
+////////////////////////////////////////////
+//////////// MAVEN PUBLISHING //////////////
+////////////////////////////////////////////
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        androidLibs(MavenPublication) {
+            artifact bundleRelease
+            List<String> embedList = new ArrayList<>();
+            Map depList = new LinkedHashMap<>();
+
+            //List all embedded dependencies
+            configurations.embedded.allDependencies.each {
+                def depName = String.format("%s:%s", it.group, it.name)
+                embedList.add(depName);
+            }
+
+            //Collect all first level dependencies except embedded ones
+            configurations.compile.resolvedConfiguration.firstLevelModuleDependencies.each {
+                 dep ->
+                    def depName = String.format("%s:%s", dep.moduleGroup, dep.moduleName)
+                    if (!embedList.contains(depName) && !depList.containsKey(depName)) {
+                        depList.put(depName, dep)
+                    }
+            }
+
+            //Collect all second level dependencies of embedded ones
+            configurations.embedded.resolvedConfiguration.firstLevelModuleDependencies.each {
+                //Second Level Depenencies
+                it.children.each {
+                     dep ->
+                        def depName = String.format("%s:%s", dep.moduleGroup, dep.moduleName)
+                        if (!embedList.contains(depName) && !depList.containsKey(depName)) {
+                            depList.put(depName, dep)
+                        }
+                }
+            }
+
+           // org.gradle.api.publish.maven.internal.publication.DefaultMavenPublication
+          //  pom.projectIdentity.
+
+            groupId = "com.ytc.lib"
+            artifactId = "publiclib"
+            version = "0.0.10"
+
+            //The publication doesn't know about our dependencies, so we have to manually add them to the pom
+            pom.withXml {
+                //  org.gradle.internal.xml.XmlTransformer.XmlProviderImpl  xmlProvider     version  packaging
+                println "  "+asNode()+"  "+it.class
+                Node projectNode =  asNode();
+                println " 1 1 1   "+projectNode.name()+"  "+((NodeList)projectNode.value()).get(1)+"   "+projectNode.get("groupId")+  projectNode.get("artifactId");
+              /*  ((NodeList)projectNode.get("groupId"))[0].setValue("com.wang.test")
+                ((NodeList)projectNode.get("artifactId"))[0].setValue("publiclib")
+                ((NodeList)projectNode.get("version"))[0].setValue("0.0.1")
+*/
+                println "  2 22  "+projectNode.name()+"  "+((NodeList)projectNode.value()).get(1)+"   "+projectNode.get("groupId")+  projectNode.get("artifactId");
+                def dependenciesNode = asNode().appendNode('dependencies')
+
+                //Iterate over the compile dependencies, adding a <dependency> node for each
+                depList.values().each {
+                     dep ->
+                         println " "+dep.moduleGroup+"   "+dep.moduleName+"   "+dep.moduleVersion
+                        def hasGroup = dep.moduleGroup != null
+                        def hasName = (dep.moduleName != null || "unspecified".equals(dep.moduleName))
+                        def hasVersion = dep.moduleVersion != null
+
+                        if (hasGroup && hasName && hasVersion) {
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', dep.moduleGroup)
+                            dependencyNode.appendNode('artifactId', dep.moduleName)
+                            dependencyNode.appendNode('version', dep.moduleVersion)
+                        }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+          //  url "./TemMaven/releases"
+            url "http://192.168.19.102:8089/nexus/content/repositories/Android_Releases"
+            // url "http://myserver/maven"
+            credentials {
+                username 'admin'
+                password 'admin123'
+            }
+
+        }
+
+
+    }
+}
