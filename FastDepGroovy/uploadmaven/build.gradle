@@ -1,0 +1,38 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+
+dependencies {
+    //gradle sdk
+    compile gradleApi()
+    //groovy sdk
+    compile localGroovy()
+  }
+
+repositories {
+    mavenCentral()
+}
+
+
+
+//group和version在后面使用自定义插件的时候会用到/home/wangpeng/下载/com.surpax.ledflashlight.panel_39.apk
+group='plugin.ytc.wpplugin'
+version='1.0.1'
+
+// 上传到本地代码库
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            //提交到远程服务器：
+             /*repository(url:"http://192.168.19.102:8089/nexus/content/repositories/Android_Releases") {
+                authentication(userName: "admin", password: "admin123")
+             }*/
+            //本地的Maven地址设置为D:/repos
+           // repository(url: uri('D:/repos'))
+            repository(url: 'file:../libPlugins')
+        }
+    }
+}
+
+//apply from: './bintrayUpload.gradle'
+
+

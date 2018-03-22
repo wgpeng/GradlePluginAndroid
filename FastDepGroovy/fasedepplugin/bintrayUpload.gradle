@@ -1,0 +1,89 @@
+// 应用插件
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
+// This is the library version used when deploying the artifact
+//version = "1.0.0"//这里是你的版本，当你需要上传新的版本到bintry上时，只需要修改这里的版本即可
+//group = "reoger.hut.com.mylibrary"
+
+// Git仓库的url
+def baseUrl = 'https://github.com/wgpeng/GradlePluginAndroid'
+def siteUrl = baseUrl
+def gitUrl = "${baseUrl}/Android-Gradle-Demo"
+def issueUrl = "${baseUrl}/issues"
+
+// Maven Group ID for the artifact，一般填你唯一的包名
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+              //  packaging 'aar'
+                // Add your description here
+                name '这是一个可以通过配置制定那些modlue的可以不参与编译,让依赖此modlue的modlue在编译期间自动调账为依赖arr'
+                url siteUrl
+                // Set your license
+                licenses {
+                    license {
+                        name 'The Apache Software License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'you id'        //填写的一些基本信息（也可以不填）
+                        name 'wang peng'
+                        email 'wgpeng666@163.com'
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+                }
+            }
+        }
+    }
+}
+/*task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}*/
+/*artifacts {
+    archives javadocJar
+    archives sourcesJar
+}*/
+Properties properties = new Properties()
+properties.load(project.file("${buildDir.parent}/local.properties").newDataInputStream())
+bintray {
+    println " >>>>>>>>>>"+ new File("${buildDir.parent}/local.properties").absolutePath
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+    configurations = ['archives']
+    pkg {
+        userOrg ="wgpeng"//这个地方一定要填，一定要填 ！！（这里需要修改你申请账号是的组织id）
+        repo = "AndroidRepo"//发布到bintray上的仓库名
+        name = "FastDep"    //发布到bintray上的包名
+        desc = '这是一个可以通过配置制定那些modlue的可以不参与编译,让依赖此modlue的modlue在编译期间自动调账为依赖arr' // 项目描述
+        websiteUrl = siteUrl
+        issueTrackerUrl = issueUrl
+        vcsUrl = gitUrl
+        labels = ['gradle','plugin']
+        licenses = ["Apache-2.0"]
+        publish = true
+    }
+}
+javadoc { //jav doc采用utf-8编码否则会报“GBK的不可映射字符”错误
+    options{
+        encoding "UTF-8"
+        charSet 'UTF-8'
+    }
+}
+

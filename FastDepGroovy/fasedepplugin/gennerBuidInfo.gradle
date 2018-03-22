@@ -1,0 +1,69 @@
+println " >>>>>>>>>>>>>>>>>>>>>>"
+
+def file = new File("${getBuildDir().parent}/build.gradle")
+def map = new LinkedHashMap()
+map['projectName'] = name;
+if(file.exists()){
+    file.eachLine {line,nb->
+        if(line.matches("group\\s*=\\s*.*")){
+            map["group"]=line.split("=")[1].trim()
+            println " 匹配"+line.split("=")[1].trim()
+        }
+
+        if(line.matches("version\\s*.*")){
+            map["version"]=line.split("=")[1].trim()
+        }
+    }
+}
+
+def resourcesFile = new File("${getBuildDir().parent}/src/main/resources/META-INF/gradle-plugins")  //META-INF
+println resourcesFile.name
+if(resourcesFile.exists()){
+    if(resourcesFile.isDirectory()){
+    def files =  resourcesFile.listFiles();
+        if(files.length<0||files.length>1){
+            throw new IllegalStateException(" resources/META-INF/gradle-plugins 的文件数量不正常")
+        }
+        files.each {
+            if(!it.name.endsWith(".properties")){
+                throw new IllegalStateException(" resources/META-INF/gradle-plugins 的文件拓展名不正常")
+            }
+            map["pulginName"] = it.name.substring(0,it.name.lastIndexOf("."))
+            println " >>>>>"+map["pulginName"]
+        }
+
+    }
+
+}else {
+    println " resources/META-INF/gradle-plugins　下的文件　不存在"
+}
+
+
+def tagerFile = new File("${project.rootDir}/$name/src/main/groovy/com.ytc.wpplugin/BuildInfo.groovy")//
+println "  >>>>"+tagerFile
+
+if(!tagerFile.exists()){
+    tagerFile.createNewFile()
+    println "　创建　　１"
+}else {
+    tagerFile.delete()
+    println " 删除旧文件"
+}
+
+tagerFile.withOutputStream {os->
+
+     os << """
+package com.ytc.wpplugin
+
+import groovy.transform.Field
+
+/**
+ * Created by wangpeng on 17-9-19.
+ */
+@Field  group = ${map["group"]}
+@Field  version =${map["version"]}
+@Field  pulginName="${map["pulginName"]}"
+@Field  packageName = "${name}"
+@Field  mavenUrl = 'https://dl.bintray.com/wgpeng/AndroidRepo'
+         """
+}

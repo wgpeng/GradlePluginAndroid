@@ -1,0 +1,1 @@
+include ':fasedepplugin', ':costommoduledep', ':app', ':uploadmaven'

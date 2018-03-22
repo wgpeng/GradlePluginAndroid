@@ -1,0 +1,4 @@
+
+task wang{
+    println " 我是　wang.gradle 文件　＞＞＞＞＞＞＞＞"
+}
