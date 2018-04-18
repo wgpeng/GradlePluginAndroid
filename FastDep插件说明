@@ -1,0 +1,53 @@
+Maven 地址　：https://dl.bintray.com/wgpeng/AndroidRepo
+依赖语句：classpath  'com.ytc.wpplugin:fasedepplugin:1.0.0'
+自定义此插件的背景：
+随着Android Studio 在android开发中的普及，模块开发的方式日见兴盛，模块开发在打包、维护、代码复用上的优势也展露无遗。到目前为止采用模块开发已被安卓开发工程师广为应用，有些项目甚至达到了几十个模块，也有些项目将公司的多个App放在一个Root工程下，以方便app一些公用的业务可以抽出来成为一个独立模块被多个App应用。但这经过实践，如果一个模块使用studio编译的时间是１分钟，两个的话就会变成２.5分钟，三个的时候就变成了５分钟，总之每增加一个模块所增减的时间并不是线性递增的，而是几何性质的增加，电脑不好的情况下第一次编译模块众多的工程耗费一两个小时都是常见的，甚至还会因为内存耗尽而宕机，即便第一次编译之后编译时间会大幅度降低，但是在开发中每次修改一行代码，编译十几、二十几分钟才能看到运行效果也让团队开发效率直线下降。而导致时间梯度上升的根本原因就是Gradle独有的编译生命周期和逻辑造成的，所以就需要自定义一个Gradle插件Hock住编译流程，改变编译的一些规则！
+此插件达到的目标：
+１、可以指定没有变更代码的模块不参与编译；
+２、支持多个App在同一个工程下开发的情况
+３、无缝嵌入，无需写特定的代码嵌入模块的build.gradle文件
+４、不影响git或svn的代码同步——一个人改变了其中的模块并提交后，其它人pull下来，不不用编译这个模块也可以运行到模块中最新的代码；
+使用方法：
+将项目中setting.gradle文件清空，然后植入一下代码( 先不要管清掉　include 语句工程怎么编译，后面会说到)
+/setting.gradle
+buildscript {
+　　repositories {
+　　　maven {
+　　　url　"https://dl.bintray.com/wgpeng/AndroidRepo"
+　　　}
+　　}
+　　dependencies {
+　　　classpath'com.ytc.wpplugin:fasedepplugin:1.0.0'
+　　}
+}
+apply　plugin:'ycf.wangpeng.fasedep'
+在根目录下，也就是setting文件同级目录下新建一个fastDep.properties
+/fastDep.properties
+#  app代表要运行的主工程,app所依赖的其它子module用app.{modueName}来控制
+#true允许编译flase禁止编译
+#app代表要运行的主工程
+app=true
+app.all=flase
+app.test2=true
+app.testsubproject=flase
+app2=flase
+app2.test2=true
+app2.subprojext=flase
+这个文件是控制插架的入口，所有的工程配置都在这里完成，前面说到的setting.gradle文件中的include　配置也都写在这里，由插件进行动态构建子工程；注意这个文件是一个本地文件，一定要添加到.gitignore文件里被忽略提交，以免影响到其它同事或项目开发者
+上面是一个两个Apk(app和app2)在同一个工程下同时开发的例子，app和app2指的是模块名字．其中app被置为true，而app2被置为flase，代表目前需要运行的app而不是app2
+而app和app2后面的＂．＂后面初了all其它都是各个apk要运行所要依赖的子模块名．拿app.test举例，test模块是app这个主模块直接依赖的模块或者是被间接依赖的模块（app－＞testsubproject－＞test2），而test "="后面的true则是指定参与构建后编译．
+如果我们想让模块全部编译，只需要添加一个app.all=true，就可以让所有模块参与编译，这在打包时很有用; 不需要全部时，可以删除它或者将其置为flase
+ 
+原理：
+本来想讲一下此插件的原理，尝试了一下，发现其中牵扯到android庞大的编译流程、Gradle框架运行流程还有Groovy的深层的语法，讲任何一点都要牵扯其它两项很多知识点，没有办法讲清，所以以下面两张图讲一下插件实现的大致思想：
+ 
+
+Android　编译图
+ 
+ 
+
+Gradle 流程片段
+插件主要是Hack了Gradle编译器的三个大的节点，注入了自己的逻辑
+１、在settings创建完毕后，根据前面的配置文件，动态管理创建project实例；
+２、在配置依赖关系时，根据配置文件中true和flase，强制改变其依赖形式是依赖aar还是工程
+３、监控编译任务，当其生成aar文件后，对文件进行检测，然后在根目录中创建libs文件夹，将其转移到libs中，作为依赖的基础；
